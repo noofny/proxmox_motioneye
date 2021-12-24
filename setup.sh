@@ -23,21 +23,24 @@ pushd $TEMP_FOLDER_PATH >/dev/null
 
 
 # prompts/args
-DEFAULT_HOSTNAME='motioneye-0'
+DEFAULT_HOSTNAME='motioneye-1'
 DEFAULT_PASSWORD='motioneye'
 read -p "Enter a hostname (${DEFAULT_HOSTNAME}) : " HOSTNAME
 read -s -p "Enter a password (${DEFAULT_PASSWORD}) : " HOSTPASS
 echo -e "\n"
+read -p "Enter a container ID (${DEFAULT_CONTAINER_ID}) : " CONTAINER_ID
+info "Using ContainerID: ${CONTAINER_ID}"
 HOSTNAME="${HOSTNAME:-${DEFAULT_HOSTNAME}}"
 HOSTPASS="${HOSTPASS:-${DEFAULT_PASSWORD}}"
 CONTAINER_OS_TYPE='debian'
 CONTAINER_OS_VERSION='10'
 CONTAINER_OS_STRING="${CONTAINER_OS_TYPE}-${CONTAINER_OS_VERSION}"
+DEFAULT_CONTAINER_ID=$(pvesh get /cluster/nextid)
 info "Using OS: ${CONTAINER_OS_STRING}"
 CONTAINER_ARCH=$(dpkg --print-architecture)
 mapfile -t TEMPLATES < <(pveam available -section system | sed -n "s/.*\($CONTAINER_OS_STRING.*\)/\1/p" | sort -t - -k 2 -V)
 TEMPLATE="${TEMPLATES[-1]}"
-TEMPLATE_STRING="local:vztmpl/${TEMPLATE}"
+TEMPLATE_STRING="remote:vztmpl/${TEMPLATE}"
 info "Using template: ${TEMPLATE_STRING}"
 
 
@@ -62,11 +65,6 @@ fi
 info "Using '$STORAGE' for storage location."
 
 
-# Get the next guest VM/LXC ID
-CONTAINER_ID=$(pvesh get /cluster/nextid)
-info "Container ID is $CONTAINER_ID."
-
-
 # Create the container
 info "Creating LXC container..."
 pct create "${CONTAINER_ID}" "${TEMPLATE_STRING}" \
@@ -86,6 +84,11 @@ pct create "${CONTAINER_ID}" "${TEMPLATE_STRING}" \
 # Start container
 info "Starting LXC container..."
 pct start "${CONTAINER_ID}"
+CONTAINER_STATUS=$(pct status $CONTAINER_ID)
+if [ ${CONTAINER_STATUS} != "status: running" ]; then
+    error "Container ${CONTAINER_ID} is not running! status=${CONTAINER_STATUS}"
+    exit 1
+fi
 
 
 # Setup OS

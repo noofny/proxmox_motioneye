@@ -77,8 +77,7 @@ pct create "${CONTAINER_ID}" "${TEMPLATE_STRING}" \
     -net0 name=eth0,bridge=vmbr0,ip=dhcp \
     -ostype "${CONTAINER_OS_TYPE}" \
     -password ${HOSTPASS} \
-    -storage "${STORAGE}" \
-    >/dev/null
+    -storage "${STORAGE}"
 
 
 # Start container
